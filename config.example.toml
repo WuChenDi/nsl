@@ -1,0 +1,53 @@
+# nsl configuration example.
+#
+# Copy to ./nsl.toml (project), ~/.nsl/config.toml (user), or
+# /etc/nsl/config.toml (system). Merged low -> high priority:
+#   /etc/nsl -> ~/.nsl -> ./nsl.toml -> NSL_* env -> CLI flags
+# Everything shown here is optional; delete anything you don't need.
+
+[proxy]
+# Port the proxy listens on. Default: 1355.
+port = 1355
+
+# Terminate TLS at the proxy (HTTP/2 supported). Per-host certs are
+# generated on demand via SNI after `sudo nsl trust`. Default: false.
+https = false
+
+# IP to bind. Use "0.0.0.0" to accept LAN traffic. Default: 127.0.0.1.
+bind = "127.0.0.1"
+
+# Drop requests whose x-nsl-hops exceeds this (loop detection). Default: 5.
+max_hops = 5
+
+# Allowed hostname suffixes. `localhost` is always implicitly allowed;
+# entries here are additive. Useful when you want memorable names like
+# `api.dev.local` resolved via /etc/hosts or dnsmasq.
+domains = ["localhost", "dev.local"]
+
+# Per-domain display overrides for `nsl get` / `nsl status`. Use when
+# external domains are fronted by another reverse proxy and the public
+# URL differs from the local proxy scheme/port.
+#
+# [proxy.domain."dev.example.com"]
+# https = true     # default: true
+# port = 443       # omit for scheme default (80/443)
+
+[app]
+# Optional fixed app port. If unset, nsl picks one from the range below.
+# port = 4000
+
+# Port range nsl draws from when auto-allocating an app port.
+port_range_start = 3000
+port_range_end = 9999
+
+# Override an existing route for the same name (same as `--force`).
+force = false
+
+# Seconds to wait for the app to bind before giving up. Default: 30.
+ready_timeout = 30
+
+[paths]
+# Override the runtime state directory (routes.json, proxy.pid,
+# proxy.log, generated certs). Default: ~/.nsl or /tmp/nsl for
+# privileged proxy ports.
+# state_dir = "/absolute/path/to/nsl-state"

@@ -1,0 +1,14 @@
+{
+  "name": "nsl-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test --timeout 30000 src/",
+    "test:proxy": "bun test --timeout 30000 src/proxy/",
+    "test:routing": "bun test --timeout 30000 src/routing/",
+    "test:cli": "bun test --timeout 30000 src/cli/"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

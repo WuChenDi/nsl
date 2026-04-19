@@ -1,0 +1,9 @@
+# Platform binaries are populated by CI during release, never committed.
+linux-x64/bin/nsl
+linux-arm64/bin/nsl
+darwin-x64/bin/nsl
+darwin-arm64/bin/nsl
+win32-x64/bin/nsl.exe
+
+# Stage dir used by sync-version / local publish dry-runs.
+*.tgz

@@ -1,0 +1,109 @@
+name: Publish (npm)
+
+# Publishes nsl as npm platform subpackages + a wrapper package, using the
+# binaries attached to a GitHub Release by the `release` workflow.
+#
+# Trigger: manual only. Provide a release tag whose assets should be used.
+# (The companion `release.yml` workflow creates the tagged GitHub Release
+# with binaries attached; this workflow just re-packages them for npm.)
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish (e.g. v0.1.0). Defaults to the latest release."
+        required: false
+
+jobs:
+  publish:
+    name: publish to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Resolve release tag
+        id: tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            name="${{ github.event.inputs.tag }}"
+          else
+            name="$(gh release view --json tagName --jq .tagName)"
+          fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "version=${name#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Download release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          mkdir -p assets
+          gh release download "${{ steps.tag.outputs.name }}" \
+            --dir assets \
+            --pattern 'nsl-*.tar.gz' \
+            --pattern 'nsl-*.zip'
+          ls -la assets/
+
+      - name: Stage binaries into subpackages
+        run: |
+          set -eu
+          for sub in linux-x64 linux-arm64 darwin-x64 darwin-arm64; do
+            mkdir -p "npm/$sub/bin"
+            tar -xzf "assets/nsl-$sub.tar.gz" -C "npm/$sub/bin"
+            chmod +x "npm/$sub/bin/nsl"
+          done
+          mkdir -p npm/win32-x64/bin
+          unzip -o "assets/nsl-win32-x64.zip" -d npm/win32-x64/bin
+
+      - name: Sync package versions
+        run: node npm/sync-version.mjs "${{ steps.tag.outputs.version }}"
+
+      - name: Publish platform subpackages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -eu
+          publish_with_retry() {
+            local dir="$1" attempt
+            for attempt in 1 2 3 4 5; do
+              if (cd "$dir" && npm publish --access public --provenance); then
+                return 0
+              fi
+              echo "publish attempt $attempt failed; retrying in $((attempt * 10))s"
+              sleep $((attempt * 10))
+            done
+            return 1
+          }
+          first=1
+          for sub in linux-x64 linux-arm64 darwin-x64 darwin-arm64 win32-x64; do
+            if [ $first -eq 0 ]; then sleep 15; fi
+            first=0
+            echo "::group::publish @nsio/nsl-$sub"
+            publish_with_retry "npm/$sub"
+            echo "::endgroup::"
+          done
+
+      - name: Publish wrapper package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -eu
+          sleep 15
+          for attempt in 1 2 3 4 5; do
+            if (cd npm/nsl && npm publish --access public --provenance); then
+              exit 0
+            fi
+            echo "wrapper publish attempt $attempt failed; retrying in $((attempt * 10))s"
+            sleep $((attempt * 10))
+          done
+          exit 1

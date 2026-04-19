@@ -1,0 +1,39 @@
+{
+  "name": "@nsio/nsl",
+  "version": "0.1.0",
+  "description": "Replace port numbers with stable, named .localhost URLs. For humans and agents.",
+  "keywords": [
+    "local",
+    "development",
+    "proxy",
+    "localhost",
+    "cli"
+  ],
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/nsiod/nsl",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nsiod/nsl.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nsiod/nsl/issues"
+  },
+  "bin": {
+    "nsl": "bin/nsl.js"
+  },
+  "files": [
+    "bin/nsl.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
+  "optionalDependencies": {
+    "@nsio/nsl-linux-x64": "0.1.0",
+    "@nsio/nsl-linux-arm64": "0.1.0",
+    "@nsio/nsl-darwin-x64": "0.1.0",
+    "@nsio/nsl-darwin-arm64": "0.1.0",
+    "@nsio/nsl-win32-x64": "0.1.0"
+  }
+}
