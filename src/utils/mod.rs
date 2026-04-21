@@ -3,7 +3,7 @@ use std::path::PathBuf;
 pub use crate::platform::fix_ownership;
 
 /// Default proxy port.
-pub const DEFAULT_PORT: u16 = 1355;
+pub const DEFAULT_PORT: u16 = 3355;
 
 /// Threshold below which ports require elevated privileges.
 pub const PRIVILEGED_PORT_THRESHOLD: u16 = 1024;

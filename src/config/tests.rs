@@ -4,11 +4,11 @@ use std::collections::BTreeMap;
 #[test]
 fn test_default_config() {
     let config = Config::default();
-    assert_eq!(config.proxy_port, 1355);
+    assert_eq!(config.proxy_port, 3355);
     assert!(!config.proxy_https);
     assert_eq!(config.max_hops, 5);
     assert_eq!(config.domains, vec!["localhost".to_string()]);
-    assert_eq!(config.app_port_range, (3000, 9999));
+    assert_eq!(config.app_port_range, (20000, 29999));
     assert!(!config.app_force);
     assert!(config.state_dir.is_none());
 }
@@ -17,7 +17,7 @@ fn test_default_config() {
 fn test_raw_config_resolve_defaults() {
     let raw = RawConfig::default();
     let config = raw.resolve();
-    assert_eq!(config.proxy_port, 1355);
+    assert_eq!(config.proxy_port, 3355);
     assert!(!config.proxy_https);
 }
 
@@ -331,8 +331,8 @@ domains = ["dev.local", "localhost", "test"]
 fn test_default_listen_is_loopback() {
     let config = Config::default();
     assert_eq!(config.proxy_bind, IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
-    assert_eq!(config.proxy_port, 1355);
-    assert_eq!(config.proxy_listen(), "127.0.0.1:1355");
+    assert_eq!(config.proxy_port, 3355);
+    assert_eq!(config.proxy_listen(), "127.0.0.1:3355");
 }
 
 #[test]
@@ -388,7 +388,7 @@ fn test_listen_invalid_falls_back_to_default() {
     };
     let config = raw.resolve();
     assert_eq!(config.proxy_bind, IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
-    assert_eq!(config.proxy_port, 1355);
+    assert_eq!(config.proxy_port, 3355);
 }
 
 #[test]

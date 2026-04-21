@@ -6,9 +6,9 @@
 # Everything shown here is optional; delete anything you don't need.
 
 [proxy]
-# Address the proxy listens on. Default: 127.0.0.1:1355.
-# Use ":1355" to listen on all IPv4 interfaces.
-listen = "127.0.0.1:1355"
+# Address the proxy listens on. Default: 127.0.0.1:3355.
+# Use ":3355" to listen on all IPv4 interfaces.
+listen = "127.0.0.1:3355"
 
 # Terminate TLS at the proxy (HTTP/2 supported). Per-host certs are
 # generated on demand via SNI after `sudo nsl trust`. Default: false.
@@ -35,8 +35,9 @@ domains = ["localhost", "dev.local"]
 # port = 4000
 
 # Port range nsl draws from when auto-allocating an app port.
-port_range_start = 3000
-port_range_end = 9999
+# Defaults avoid common local dev ports like 3000, 5173, 8000, and 8080.
+port_range_start = 20000
+port_range_end = 29999
 
 # Override an existing route for the same name (same as `--force`).
 force = false

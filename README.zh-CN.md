@@ -6,7 +6,7 @@
 
 ```diff
 - $ npm run dev                       # "这个今天是 3000 还是 5173?"
-+ $ nsl run npm run dev               # http://myapp.localhost:1355
++ $ nsl run npm run dev               # http://myapp.localhost:3355
 ```
 
 ## 为什么需要它
@@ -39,7 +39,7 @@ cargo install --path .
 ```bash
 cd my-web-app
 nsl run npm run dev
-# -> http://my-web-app.localhost:1355
+# -> http://my-web-app.localhost:3355
 ```
 
 零配置、零参数。`nsl` 会:
@@ -49,6 +49,8 @@ nsl run npm run dev
 - 从 `[app].port_range_start..port_range_end` 挑一个空闲端口。
 - 注册路由并把分配到的端口注入子进程。
 - 跟随输出直到 Ctrl-C,然后清理路由。
+
+默认应用端口池是 `20000..29999`,会避开 `3000`、`5173`、`8000`、`8080` 这类常见开发端口,同时保留足够大的自动分配范围。
 
 想让某次调用跳过注册,设 `NSL=0` 或 `NSL=skip`。
 
@@ -71,7 +73,7 @@ nsl run npm run dev
 1. 从系统、用户、项目、环境变量、CLI 参数加载并合并配置。
 2. 从 `--name`、`package.json`、Git 根目录或当前目录解析路由名和可选路径前缀。
 3. 如果代理守护进程没在运行,先启动代理。自动启动时使用 `[proxy].listen` 和 `NSL_LISTEN`;`--listen` 用于显式执行 `nsl start` 或 `nsl reload`。
-4. 从 `[app].port_range_start..port_range_end` 里挑应用端口,除非 `--port` 指定了固定端口。
+4. 从 `[app].port_range_start..port_range_end` 里挑应用端口,除非 `--port` 指定了固定端口。默认池是 `20000..29999`。
 5. 准备子进程环境变量: `PORT`、`HOST`、`NSL_URL`、`NSL=1`。
 6. 替换子命令参数里的 `NSL_PORT` 字面量,然后按识别到的框架追加端口参数。
 7. 把路由写入 `routes.json`,包括路径前缀、`--strip`、`--change-origin` 选项。
@@ -140,7 +142,7 @@ nsl run --name shop:/api --strip npm run api     # 上游收到 /users 而不是
 ```mermaid
 flowchart LR
     B["浏览器"]
-    P["nsl 代理 :1355<br/>routes.json"]
+    P["nsl 代理 :3355<br/>routes.json"]
     A1["shop :5173"]
     A2["api :4000"]
     A3["docs :8000"]
@@ -217,15 +219,15 @@ nsl hosts sync | clean         同步路由主机名到 /etc/hosts。
 
 | 参数             | 说明                                              |
 | ---------------- | ------------------------------------------------- |
-| `--listen ADDR`  | 覆盖 `[proxy].listen`(如 `127.0.0.1:1355` 或 `:1355`)。 |
+| `--listen ADDR`  | 覆盖 `[proxy].listen`(如 `127.0.0.1:3355` 或 `:3355`)。 |
 | `--https`        | 代理层终结 TLS。                                  |
 | `--foreground`   | 前台运行,不守护化。                              |
 
 从脚本启动或重载代理时,也可以用 `NSL_LISTEN=ADDR`:
 
 ```bash
-NSL_LISTEN=127.0.0.1:1355 nsl start
-NSL_LISTEN=:1355 nsl reload
+NSL_LISTEN=127.0.0.1:3355 nsl start
+NSL_LISTEN=:3355 nsl reload
 ```
 
 ### 代理日志
@@ -284,7 +286,7 @@ nsl route api --remove
 
 ```toml
 [proxy]
-listen = "127.0.0.1:1355"
+listen = "127.0.0.1:3355"
 https = false
 domains = ["localhost", "dev.local"]
 # max_hops = 5   # 循环检测上限
@@ -296,8 +298,8 @@ https = true
 # port = 443
 
 [app]
-port_range_start = 3000
-port_range_end   = 9999
+port_range_start = 20000
+port_range_end   = 29999
 
 [paths]
 # state_dir = "/absolute/path/to/nsl-state"
@@ -309,8 +311,8 @@ port_range_end   = 9999
 
 ```toml
 [proxy]
-listen = "127.0.0.1:1355"  # 只监听本机回环地址
-# listen = ":1355"         # 监听全部 IPv4 网卡
+listen = "127.0.0.1:3355"  # 只监听本机回环地址
+# listen = ":3355"         # 监听全部 IPv4 网卡
 https = false
 domains = ["localhost", "dev.local"]
 ```
@@ -319,7 +321,7 @@ domains = ["localhost", "dev.local"]
 
 ```bash
 nsl start --listen 127.0.0.1:8080
-NSL_LISTEN=:1355 nsl reload
+NSL_LISTEN=:3355 nsl reload
 ```
 
 `[proxy].domains` 控制代理识别哪些域名后缀。`.localhost` 通常自动解析。其他后缀一般需要 `sudo nsl hosts sync` 或本地 DNS。
@@ -338,8 +340,8 @@ port = 443
 
 ```toml
 [app]
-port_range_start = 3000
-port_range_end = 9999
+port_range_start = 20000
+port_range_end = 29999
 ```
 
 每次 `nsl run` 选出的应用端口都会通过 `PORT` 传给子进程,也可以用 `NSL_PORT` 字面量插入到子命令参数里。只有子进程必须固定端口时才使用 `nsl run --port N`。
@@ -348,7 +350,7 @@ port_range_end = 9999
 
 | 变量            | 作用                                |
 | --------------- | ----------------------------------- |
-| `NSL_LISTEN`    | 代理监听地址(如 `127.0.0.1:1355` 或 `:1355`)。 |
+| `NSL_LISTEN`    | 代理监听地址(如 `127.0.0.1:3355` 或 `:3355`)。 |
 | `NSL_HTTPS`     | `1` / `true` 启用 HTTPS。           |
 | `NSL_DOMAINS`   | 逗号分隔的允许域名后缀。            |
 | `NSL_STATE_DIR` | 覆盖状态目录。                      |
@@ -383,7 +385,7 @@ port_range_end = 9999
 // vite.config.ts
 server: {
   proxy: {
-    "/api": { target: "http://api.localhost:1355", changeOrigin: true, ws: true },
+    "/api": { target: "http://api.localhost:3355", changeOrigin: true, ws: true },
   },
 }
 ```
@@ -418,7 +420,7 @@ npm uninstall -g @nsio/nsl
 ## 常见问题
 
 - **`nsl route` 报 "proxy is not running"** —— `nsl run` 会自动启动,但 `nsl route` 不会。先跑一次 `nsl start`。
-- **端口被占用** —— 别的进程占了 `1355`。改用 `nsl start --listen 127.0.0.1:8080` 或在配置里设 `[proxy].listen = "127.0.0.1:8080"`。
+- **端口被占用** —— 别的进程占了 `3355`。改用 `nsl start --listen 127.0.0.1:8080` 或在配置里设 `[proxy].listen = "127.0.0.1:8080"`。
 - **Linux 上 `.localhost` 解析失败** —— glibc 默认支持 `*.localhost`,某些极简发行版裁掉了。要么在 `/etc/nsswitch.conf` 里补上,要么改用自定义域名后缀 + `sudo nsl hosts sync`。
 - **浏览器说 HTTPS 证书不受信任** —— 跑 `sudo nsl trust`。Linux 上的 Firefox 用自己的 NSS 信任库,手动导入 CA。
 - **WebSocket / HTTP/2** —— 透明升级,不需要额外参数。

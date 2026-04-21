@@ -6,7 +6,7 @@ One proxy, many apps, no port hunting. `nsl` gives every local service a stable 
 
 ```diff
 - $ npm run dev                       # "hm, was this 3000 or 5173 today?"
-+ $ nsl run npm run dev               # http://myapp.localhost:1355
++ $ nsl run npm run dev               # http://myapp.localhost:3355
 ```
 
 ## Why
@@ -39,7 +39,7 @@ cargo install --path .
 ```bash
 cd my-web-app
 nsl run npm run dev
-# -> http://my-web-app.localhost:1355
+# -> http://my-web-app.localhost:3355
 ```
 
 No config, no flags. `nsl`:
@@ -49,6 +49,8 @@ No config, no flags. `nsl`:
 - Reserves a port from `[app].port_range_start..port_range_end`.
 - Registers the route and injects the allocated port into your command.
 - Tails output until you Ctrl-C, then removes the route.
+
+The default app pool is `20000..29999`, which avoids common dev ports such as `3000`, `5173`, `8000`, and `8080` while still leaving a broad auto-allocation range.
 
 Set `NSL=0` or `NSL=skip` to opt out of registration for a single invocation.
 
@@ -71,7 +73,7 @@ Commit that once and every contributor gets the same URL for the service.
 1. Loads configuration from system, user, project, environment, then CLI flags.
 2. Resolves the route name and optional path prefix from `--name`, `package.json`, the Git root, or the cwd.
 3. Starts the proxy daemon if it is not running. Auto-start uses `[proxy].listen` and `NSL_LISTEN`; `--listen` is for explicit `nsl start` or `nsl reload`.
-4. Chooses the application port from `[app].port_range_start..port_range_end`, unless `--port` pins it.
+4. Chooses the application port from `[app].port_range_start..port_range_end`, unless `--port` pins it. The default pool is `20000..29999`.
 5. Prepares the child process by exporting `PORT`, `HOST`, `NSL_URL`, and `NSL=1`.
 6. Rewrites `NSL_PORT` placeholders in child command arguments, then optionally adds framework-specific port flags.
 7. Registers the route in `routes.json`, including the path prefix, `--strip`, and `--change-origin` options.
@@ -140,7 +142,7 @@ nsl run --name shop:/api --strip npm run api     # /api/users -> /users upstream
 ```mermaid
 flowchart LR
     B["Browser"]
-    P["proxy daemon :1355<br/>routes.json"]
+    P["proxy daemon :3355<br/>routes.json"]
     A1["shop :5173"]
     A2["api :4000"]
     A3["docs :8000"]
@@ -217,15 +219,15 @@ nsl hosts sync | clean         Sync route hostnames to /etc/hosts.
 
 | Flag             | Description                                        |
 | ---------------- | -------------------------------------------------- |
-| `--listen ADDR`  | Override `[proxy].listen` (e.g. `127.0.0.1:1355` or `:1355`). |
+| `--listen ADDR`  | Override `[proxy].listen` (e.g. `127.0.0.1:3355` or `:3355`). |
 | `--https`        | Terminate TLS at the proxy.                        |
 | `--foreground`   | Stay in the current shell instead of daemonizing.  |
 
 Use `NSL_LISTEN=ADDR` when starting or reloading the proxy from scripts:
 
 ```bash
-NSL_LISTEN=127.0.0.1:1355 nsl start
-NSL_LISTEN=:1355 nsl reload
+NSL_LISTEN=127.0.0.1:3355 nsl start
+NSL_LISTEN=:3355 nsl reload
 ```
 
 ### Proxy logs
@@ -285,7 +287,7 @@ Full template in [`config.example.toml`](./config.example.toml).
 
 ```toml
 [proxy]
-listen = "127.0.0.1:1355"
+listen = "127.0.0.1:3355"
 https = false
 domains = ["localhost", "dev.local"]
 # max_hops = 5   # loop-detection cap
@@ -297,8 +299,8 @@ https = true
 # port = 443
 
 [app]
-port_range_start = 3000
-port_range_end   = 9999
+port_range_start = 20000
+port_range_end   = 29999
 
 [paths]
 # state_dir = "/absolute/path/to/nsl-state"
@@ -310,8 +312,8 @@ port_range_end   = 9999
 
 ```toml
 [proxy]
-listen = "127.0.0.1:1355"  # loopback only
-# listen = ":1355"         # all IPv4 interfaces
+listen = "127.0.0.1:3355"  # loopback only
+# listen = ":3355"         # all IPv4 interfaces
 https = false
 domains = ["localhost", "dev.local"]
 ```
@@ -320,7 +322,7 @@ Override it at proxy startup with either a flag or environment variable:
 
 ```bash
 nsl start --listen 127.0.0.1:8080
-NSL_LISTEN=:1355 nsl reload
+NSL_LISTEN=:3355 nsl reload
 ```
 
 `[proxy].domains` controls which suffixes the proxy recognizes. `.localhost` usually resolves automatically. Other suffixes often need `sudo nsl hosts sync` or local DNS.
@@ -339,8 +341,8 @@ port = 443
 
 ```toml
 [app]
-port_range_start = 3000
-port_range_end = 9999
+port_range_start = 20000
+port_range_end = 29999
 ```
 
 For each `nsl run`, the selected app port is passed to the child process through `PORT`, and can also be inserted into command arguments with the literal `NSL_PORT` placeholder. Use `nsl run --port N` only when the child process must use a fixed port.
@@ -349,7 +351,7 @@ For each `nsl run`, the selected app port is passed to the child process through
 
 | Variable        | Purpose                                 |
 | --------------- | --------------------------------------- |
-| `NSL_LISTEN`    | Proxy listen address (e.g. `127.0.0.1:1355` or `:1355`). |
+| `NSL_LISTEN`    | Proxy listen address (e.g. `127.0.0.1:3355` or `:3355`). |
 | `NSL_HTTPS`     | `1` / `true` enables HTTPS.             |
 | `NSL_DOMAINS`   | Comma-separated allowed domain suffixes.|
 | `NSL_STATE_DIR` | Override the state directory.           |
@@ -384,7 +386,7 @@ If a dev server upstream-proxies to another `nsl`-backed service, set `changeOri
 // vite.config.ts
 server: {
   proxy: {
-    "/api": { target: "http://api.localhost:1355", changeOrigin: true, ws: true },
+    "/api": { target: "http://api.localhost:3355", changeOrigin: true, ws: true },
   },
 }
 ```
@@ -419,7 +421,7 @@ If you plan to use HTTPS again afterward, re-run `sudo nsl trust` — the old CA
 ## Troubleshooting
 
 - **"proxy is not running"** after `nsl route` — `nsl run` auto-starts the proxy, but `nsl route` does not. Run `nsl start` once.
-- **Port already in use** — something else holds `1355`. Change with `nsl start --listen 127.0.0.1:8080` or `[proxy].listen = "127.0.0.1:8080"`.
+- **Port already in use** — something else holds `3355`. Change with `nsl start --listen 127.0.0.1:8080` or `[proxy].listen = "127.0.0.1:8080"`.
 - **`.localhost` doesn't resolve on Linux** — glibc resolves `*.localhost` by default, but a few minimal distros strip the rule. Either restore it in `/etc/nsswitch.conf` or switch to `sudo nsl hosts sync` with a custom suffix.
 - **Browser says the HTTPS cert isn't trusted** — run `sudo nsl trust`. For Firefox on Linux, import the CA manually (Firefox uses its own NSS database).
 - **WebSocket / HTTP/2** — transparently upgraded; no special flag.

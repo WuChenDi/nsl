@@ -104,7 +104,7 @@ For `nsl run [flags] <cmd>...`, reason about the flow in this order:
 3. Start the proxy daemon if needed. Auto-start uses `[proxy].listen` and
    `NSL_LISTEN`; `--listen` is for explicit `nsl start` or `nsl reload`.
 4. Allocate the app port from `[app].port_range_start..port_range_end`, unless
-   `--port` pins it.
+   `--port` pins it. The default pool is `20000..29999`.
 5. Export child env vars: `PORT`, `HOST`, `NSL_URL`, and `NSL=1`.
 6. Replace `NSL_PORT` placeholders in child command arguments.
 7. Append recognized framework port flags when safe.
@@ -186,7 +186,7 @@ Configuration scopes:
 
 Useful environment variables:
 
-- `NSL_LISTEN`: proxy listen address, default `127.0.0.1:1355`; use `:1355` to listen on all IPv4 interfaces
+- `NSL_LISTEN`: proxy listen address, default `127.0.0.1:3355`; use `:3355` to listen on all IPv4 interfaces
 - `NSL_HTTPS`: set to `1` or `true` to enable HTTPS
 - `NSL_DOMAINS`: comma-separated domain suffixes
 - `NSL_STATE_DIR`: state directory override
@@ -195,7 +195,7 @@ Use `NSL_LISTEN` when starting or reloading the proxy itself:
 
 ```bash
 NSL_LISTEN=127.0.0.1:18555 nsl start
-NSL_LISTEN=:1355 nsl reload
+NSL_LISTEN=:3355 nsl reload
 ```
 
 Use `NSL_STATE_DIR` in tests and automation to avoid touching a user's default
@@ -213,7 +213,7 @@ Set `NSL=0` or `NSL=skip` to run the child command directly while still setting
 Default proxy URL form:
 
 ```text
-http://<name>.localhost:1355
+http://<name>.localhost:3355
 ```
 
 Path-prefixed routes use longest-prefix matching:

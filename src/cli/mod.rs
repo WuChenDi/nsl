@@ -52,10 +52,10 @@ pub(super) enum Commands {
 
     /// Start the proxy server
     #[command(
-        after_help = "Proxy listen address:\n  Use --listen ADDR or NSL_LISTEN=ADDR to configure where the proxy listens.\n  Examples: nsl start --listen 127.0.0.1:1355\n            NSL_LISTEN=:1355 nsl start"
+        after_help = "Proxy listen address:\n  Use --listen ADDR or NSL_LISTEN=ADDR to configure where the proxy listens.\n  Examples: nsl start --listen 127.0.0.1:3355\n            NSL_LISTEN=:3355 nsl start"
     )]
     Start {
-        /// Listen address for the proxy (e.g. 127.0.0.1:1355 or :1355)
+        /// Listen address for the proxy (e.g. 127.0.0.1:3355 or :3355)
         #[arg(short, long)]
         listen: Option<String>,
 
@@ -77,10 +77,10 @@ pub(super) enum Commands {
 
     /// Restart the proxy server (stop then start)
     #[command(
-        after_help = "Proxy listen address:\n  Use --listen ADDR or NSL_LISTEN=ADDR to configure where the proxy listens.\n  Examples: nsl reload --listen 127.0.0.1:1355\n            NSL_LISTEN=:1355 nsl reload"
+        after_help = "Proxy listen address:\n  Use --listen ADDR or NSL_LISTEN=ADDR to configure where the proxy listens.\n  Examples: nsl reload --listen 127.0.0.1:3355\n            NSL_LISTEN=:3355 nsl reload"
     )]
     Reload {
-        /// Listen address for the proxy (e.g. 127.0.0.1:1355 or :1355)
+        /// Listen address for the proxy (e.g. 127.0.0.1:3355 or :3355)
         #[arg(short, long)]
         listen: Option<String>,
 
@@ -219,7 +219,7 @@ mod tests {
         let help = String::from_utf8(help).unwrap();
 
         assert!(help.contains("NSL_LISTEN"));
-        assert!(help.contains("nsl start --listen 127.0.0.1:1355"));
+        assert!(help.contains("nsl start --listen 127.0.0.1:3355"));
     }
 
     #[test]

@@ -126,7 +126,7 @@ impl Default for Config {
             domain_displays: Vec::new(),
             proxy_bind: IpAddr::V4(Ipv4Addr::LOCALHOST),
             app_port: None,
-            app_port_range: (3000, 9999),
+            app_port_range: (20000, 29999),
             app_force: false,
             ready_timeout: 30,
             state_dir: None,
