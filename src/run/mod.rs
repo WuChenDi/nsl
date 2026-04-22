@@ -69,13 +69,18 @@ fn shell_process_command(args: &[String]) -> Vec<String> {
 
 fn build_route_owner(pid: u32, args: &[String]) -> anyhow::Result<RouteOwner> {
     let cwd = std::env::current_dir()?.to_string_lossy().into_owned();
+    let start_time = crate::platform::current_process_start_time(pid);
+    #[cfg(windows)]
+    if start_time.is_none() {
+        anyhow::bail!("could not record route owner process start time");
+    }
     Ok(RouteOwner {
         pid,
         platform: crate::platform::current_platform().to_string(),
         cwd,
         command: shell_process_command(args),
         process_group: crate::platform::current_process_group(pid),
-        start_time: crate::platform::current_process_start_time(pid),
+        start_time,
     })
 }
 
@@ -222,18 +227,19 @@ pub async fn run_app(
     let app_force = config.app_force;
     let on_child_spawned = move |child_pid: u32| {
         let owner = build_route_owner(child_pid, &owner_args)?;
-        RouteStore::new(state_dir_cb)
-            .add_route_with_owner(
-                &hostname_cb,
-                app_port,
-                child_pid,
-                Some(owner),
-                app_force,
-                change_origin,
-                &path_cb,
-                strip_prefix,
-            )
-            .map_err(|e| anyhow::anyhow!("{}", e))?;
+        if let Err(e) = RouteStore::new(state_dir_cb).add_route_with_owner(
+            &hostname_cb,
+            app_port,
+            child_pid,
+            Some(owner.clone()),
+            app_force,
+            change_origin,
+            &path_cb,
+            strip_prefix,
+        ) {
+            let _ = crate::platform::kill_app_process(&owner);
+            return Err(anyhow::anyhow!("{}", e));
+        }
         registered_child_pid_cb.store(child_pid, Ordering::SeqCst);
         Ok(())
     };
@@ -370,13 +376,20 @@ async fn spawn_command(
     let child_pid = child.id().unwrap_or(0);
 
     if let Err(e) = on_child_spawned(child_pid) {
-        let _ = child.start_kill();
+        let _ = crate::platform::terminate_process_tree(child_pid);
         return Err(e);
     }
 
     if let Err(e) = wait_for_app(port, config.ready_timeout, &mut child).await {
         tracing::error!("readiness check failed: {}", e);
-        let _ = child.start_kill();
+        match build_route_owner(child_pid, args) {
+            Ok(owner) => {
+                let _ = crate::platform::kill_app_process(&owner);
+            }
+            Err(_) => {
+                let _ = crate::platform::terminate_process_tree(child_pid);
+            }
+        }
         return Err(e);
     }
 
@@ -388,7 +401,14 @@ async fn spawn_command(
             return Ok(exit_code_from_status(status).unwrap_or(0));
         }
         _ = tokio::signal::ctrl_c() => {
-            let _ = child.start_kill();
+            match build_route_owner(child_pid, args) {
+                Ok(owner) => {
+                    let _ = crate::platform::kill_app_process(&owner);
+                }
+                Err(_) => {
+                    let _ = crate::platform::terminate_process_tree(child_pid);
+                }
+            }
             let status = child.wait().await?;
             return Ok(exit_code_from_status(status).unwrap_or(0));
         }
